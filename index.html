@@ -76,6 +76,7 @@
   <h1>⚽ Bolão Copa do Mundo 2026</h1>
   <p>Fase de Grupos</p>
   <div class="header-actions">
+    <div class="badge">Breno</div>
     <div class="badge">Daniel</div>
     <div class="badge">João</div>
     <div class="badge">Mario</div>
@@ -229,8 +230,8 @@ function placarGeral(){
 function renderTudo(){ renderFiltros(); renderPlacarGeral(); renderGrupos('todos'); renderPlacarDetalhado(); }
 
 function renderFiltros(){
-  let html = '<button class="filtro-btn active" onclick="filtrar(\'todos\',this)">Todos</button>';
-  Object.keys(PALPITES).forEach(g=>{ html+=`<button class="filtro-btn" onclick="filtrar('${g}',this)">Grupo ${g}</button>`; });
+  let html = '<button class="filtro-btn active" onclick="filtrarGrupo(\'todos\',this)">Todos</button>';
+  Object.keys(PALPITES).forEach(g=>{ html+=`<button class="filtro-btn" onclick="filtrarGrupo('${g}',this)">Grupo ${g}</button>`; });
   document.getElementById('filtros-grupos').innerHTML = html;
 }
 
@@ -261,24 +262,36 @@ function renderPlacarDetalhado(){
   document.getElementById('placar-detalhado').innerHTML = html;
 }
 
-function renderGrupos(filtro){
+let filtroGrupoAtivo = 'todos';
+let filtroPessoaAtivo = 'todos';
+
+function renderGrupos(filtroGrupo, filtroPessoa){
+  // Atualiza os estados globais explicitamente
+  if(filtroGrupo !== undefined) filtroGrupoAtivo = filtroGrupo;
+  if(filtroPessoa !== undefined) filtroPessoaAtivo = filtroPessoa;
+
   let html='';
   Object.entries(PALPITES).forEach(([grupo,palpites])=>{
-    if(filtro!=='todos'&&filtro!==grupo) return;
+    if(filtroGrupoAtivo!=='todos' && filtroGrupoAtivo!==grupo) return;
     const res = RESULTADOS[grupo]||{};
     const tem = res['1o']||res['2o'];
     const allTimes = [...new Set(Object.values(palpites).flat().map(norm))];
     const resLabel = tem ? `✓ ${res['1o']} · ${res['2o']}` : 'Aguardando resultado';
+    const pessoasFiltradas = filtroPessoaAtivo==='todos' ? PARTICIPANTES : [filtroPessoaAtivo];
     html+=`<div class="grupo-section"><div class="grupo-titulo">GRUPO ${grupo} <span>${allTimes.slice(0,4).join(' · ')}</span><span class="grupo-resultado">${resLabel}</span></div><div class="comparativo">`;
-    PARTICIPANTES.forEach(pessoa=>{
-      const pal = palpites[pessoa]; if(!pal) return;
-      const {pontos,detalhes} = calcularPontos(pal, res);
-      html+=`<div class="card-pessoa"><div class="card-header"><span>${pessoa}</span>${tem?`<span class="card-pts">${pontos>0?'+'+pontos:'0'} pts</span>`:''}</div>`;
-      pal.forEach((time,i)=>{
-        const pc=['pos-1','pos-2','pos-3','pos-4'][i];
-        const ac=detalhes[i];
-        html+=`<div class="time-item ${ac==='pos'?'acerto-pos':ac==='time'?'acerto-time':''}"><div class="posicao ${pc}">${i+1}</div><span class="time-nome">${time}</span>${ac==='pos'?'<span class="ponto-badge ponto-2">+2</span>':''}${ac==='time'?'<span class="ponto-badge ponto-1">+1</span>':''}</div>`;
-      });
+    pessoasFiltradas.forEach(pessoa=>{
+      const pal = palpites[pessoa];
+      const {pontos,detalhes} = pal && pal.length > 0 ? calcularPontos(pal, res) : {pontos:0,detalhes:[]};
+      html+=`<div class="card-pessoa"><div class="card-header"><span>${pessoa}</span>${tem&&pal&&pal.length>0?`<span class="card-pts">${pontos>0?'+'+pontos:'0'} pts</span>`:''}</div>`;
+      if(pal && pal.length > 0){
+        pal.forEach((time,i)=>{
+          const pc=['pos-1','pos-2','pos-3','pos-4'][i];
+          const ac=detalhes[i];
+          html+=`<div class="time-item ${ac==='pos'?'acerto-pos':ac==='time'?'acerto-time':''}"><div class="posicao ${pc}">${i+1}</div><span class="time-nome">${time}</span>${ac==='pos'?'<span class="ponto-badge ponto-2">+2</span>':''}${ac==='time'?'<span class="ponto-badge ponto-1">+1</span>':''}</div>`;
+        });
+      } else {
+        html+=`<div class="time-item" style="color:var(--muted);font-size:0.75rem;justify-content:center;padding:16px">Palpite não enviado</div>`;
+      }
       html+='</div>';
     });
     html+='</div></div>';
@@ -286,9 +299,15 @@ function renderGrupos(filtro){
   document.getElementById('conteudo-grupos').innerHTML = html;
 }
 
-function filtrar(grupo,btn){
+function filtrarGrupo(grupo,btn){
   document.querySelectorAll('#filtros-grupos .filtro-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); renderGrupos(grupo);
+  btn.classList.add('active');
+  renderGrupos(grupo, filtroPessoaAtivo);
+}
+function filtrarPessoa(pessoa,btn){
+  document.querySelectorAll('#filtros-pessoas .filtro-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrupos(filtroGrupoAtivo, pessoa);
 }
 function trocarAba(aba,btn){
   document.querySelectorAll('.aba-btn').forEach(b=>b.classList.remove('active'));
