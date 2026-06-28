@@ -61,10 +61,20 @@
   .ponto-badge{font-size:0.65rem;padding:2px 6px;border-radius:4px;font-weight:700;}
   .ponto-2{background:rgba(18,168,85,0.2);color:var(--verde-claro);}
   .ponto-1{background:rgba(245,200,0,0.15);color:var(--amarelo);}
-  .em-breve{text-align:center;padding:60px 24px;color:var(--muted);}
-  .em-breve .icone{font-size:3rem;margin-bottom:12px;}
-  .em-breve h2{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--texto);margin-bottom:8px;}
-  .em-breve p{font-size:0.85rem;line-height:1.6;}
+  /* MATA-MATA */
+  .mm-jogo{background:var(--card);border:1px solid var(--borda);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+  .mm-jogo-header{padding:10px 16px;background:var(--borda);font-size:0.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .mm-confronto{color:var(--texto);}
+  .mm-resultado{color:var(--verde-claro);font-size:0.7rem;}
+  .mm-resultado.pendente{color:var(--muted);}
+  .mm-palpites{display:flex;flex-wrap:wrap;}
+  .mm-palpite{flex:1;min-width:120px;padding:10px 16px;border-right:1px solid var(--borda);border-top:1px solid var(--borda);}
+  .mm-palpite:last-child{border-right:none;}
+  .mm-palpite-nome{font-size:0.65rem;color:var(--muted);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;}
+  .mm-palpite-time{font-size:0.85rem;font-weight:600;}
+  .mm-palpite.acerto .mm-palpite-time{color:var(--verde-claro);}
+  .mm-palpite.erro .mm-palpite-time{color:var(--muted);text-decoration:line-through;}
+  .mm-pts{font-size:0.65rem;color:var(--amarelo);font-weight:700;margin-top:2px;}
   .hidden{display:none;}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--verde);color:#fff;padding:10px 20px;border-radius:20px;font-size:0.8rem;font-weight:600;transition:transform 0.3s;z-index:999;}
   .toast.show{transform:translateX(-50%) translateY(0);}
@@ -74,7 +84,7 @@
 
 <header>
   <h1>⚽ Bolão Copa do Mundo 2026</h1>
-  <p>Fase de Grupos</p>
+  <p>Copa do Mundo 2026</p>
   <div class="header-actions">
     <div class="badge">Breno</div>
     <div class="badge">Daniel</div>
@@ -90,8 +100,8 @@
 
 <div class="abas">
   <button class="aba-btn active" onclick="trocarAba('grupos',this)">📋 Fase de Grupos</button>
+  <button class="aba-btn" onclick="trocarAba('matamata',this)">⚡ Oitavas</button>
   <button class="aba-btn" onclick="trocarAba('placar',this)">🏆 Placar Geral</button>
-  <button class="aba-btn" onclick="trocarAba('matamata',this)">⚡ Mata-Mata</button>
 </div>
 
 <div id="aba-placar" class="hidden">
@@ -111,20 +121,20 @@
 </div>
 
 <div id="aba-matamata" class="hidden">
-  <div class="em-breve">
-    <div class="icone">🔒</div>
-    <h2>Mata-Mata</h2>
-    <p>Será liberada após a fase de grupos.<br>Os palpites serão registrados antes das oitavas.</p>
+  <div class="placar-geral" id="placar-geral-mm"></div>
+  <div class="legenda">
+    <div class="legenda-item"><div class="legenda-dot" style="background:var(--verde-claro)"></div> Acertou o classificado (+2pts)</div>
+    <div class="legenda-item"><div class="legenda-dot" style="background:var(--muted)"></div> Errou</div>
   </div>
+  <div class="main" id="conteudo-matamata"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── URL DA PLANILHA (já configurada) ─────────────────────────────────────────
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxPU_QOIi_krzmHVBbpXCNE8kArkftQBgZyXgCIgf7rSOKZCdYPfGOm-xEWx2XskIdGEA/exec';
 
-// ─── PALPITES (fixos) ─────────────────────────────────────────────────────────
+// ─── PALPITES FASE DE GRUPOS ──────────────────────────────────────────────────
 const PALPITES = {
   A:{ Breno:["Rep. Tcheca","México","África do Sul","Coreia do Sul"], Daniel:["Coreia do Sul","México","Rep. Tcheca","África do Sul"], João:["México","Rep. Tcheca","Coreia do Sul","África do Sul"], Mario:["México","Coreia do Sul","Rep. Tcheca","África do Sul"], Thiagão:["Tchéquia","México","Coreia do Sul","África do Sul"] },
   B:{ Breno:["Suíça","Bósnia","",""], Daniel:["Suíça","Canadá","Bósnia","Catar"], João:["Suíça","Bósnia","Canadá","Catar"], Mario:["Suíça","Canadá","Bósnia","Catar"], Thiagão:["Suíça","Bósnia","Canadá","Catar"] },
@@ -139,17 +149,41 @@ const PALPITES = {
   K:{ Breno:["Portugal","Colômbia","",""], Daniel:["Portugal","Colômbia","Uzbequistão","RD Congo"], João:["Portugal","Colômbia","RD Congo","Uzbequistão"], Mario:["Portugal","Colômbia","Uzbequistão","RD Congo"], Thiagão:["Portugal","Colômbia","RD Congo","Uzbequistão"] },
   L:{ Breno:["Inglaterra","Croácia","",""], Daniel:["Inglaterra","Croácia","Gana","Panamá"], João:["Croácia","Inglaterra","Gana","Panamá"], Mario:["Inglaterra","Croácia","Gana","Panamá"], Thiagão:["Inglaterra","Croácia","Gana","Panamá"] }
 };
+
+// ─── PALPITES OITAVAS ─────────────────────────────────────────────────────────
+const JOGOS_MM = [
+  { id:'mm01', confronto:'África do Sul x Canadá',       palpites:{ Breno:'Canadá',    Daniel:'Canadá',    João:'Canadá',    Mario:'Canadá',    Thiagão:'Canadá'   } },
+  { id:'mm02', confronto:'Brasil x Japão',               palpites:{ Breno:'Brasil',    Daniel:'Brasil',    João:'Brasil',    Mario:'Brasil',    Thiagão:'Brasil'   } },
+  { id:'mm03', confronto:'Alemanha x Paraguai',          palpites:{ Breno:'Alemanha',  Daniel:'Alemanha',  João:'Alemanha',  Mario:'Alemanha',  Thiagão:'Alemanha' } },
+  { id:'mm04', confronto:'Holanda x Marrocos',           palpites:{ Breno:'Holanda',   Daniel:'Holanda',   João:'Holanda',   Mario:'Holanda',   Thiagão:'Holanda'  } },
+  { id:'mm05', confronto:'Costa do Marfim x Noruega',    palpites:{ Breno:'Noruega',   Daniel:'Noruega',   João:'Noruega',   Mario:'Noruega',   Thiagão:'Noruega'  } },
+  { id:'mm06', confronto:'França x Suécia',              palpites:{ Breno:'França',    Daniel:'França',    João:'França',    Mario:'França',    Thiagão:'França'   } },
+  { id:'mm07', confronto:'México x Equador',             palpites:{ Breno:'México',    Daniel:'México',    João:'México',    Mario:'México',    Thiagão:'México'   } },
+  { id:'mm08', confronto:'Inglaterra x RD Congo',        palpites:{ Breno:'Inglaterra',Daniel:'Inglaterra',João:'Inglaterra',Mario:'Inglaterra',Thiagão:'Inglaterra'} },
+  { id:'mm09', confronto:'Bélgica x Senegal',            palpites:{ Breno:'Bélgica',   Daniel:'Bélgica',   João:'Bélgica',   Mario:'Bélgica',   Thiagão:'Senegal'  } },
+  { id:'mm10', confronto:'EUA x Bósnia e Herzegovina',   palpites:{ Breno:'EUA',       Daniel:'EUA',       João:'EUA',       Mario:'EUA',       Thiagão:'EUA'      } },
+  { id:'mm11', confronto:'Espanha x A definir',          palpites:{ Breno:'Espanha',   Daniel:'Espanha',   João:'Espanha',   Mario:'Espanha',   Thiagão:'Espanha'  } },
+  { id:'mm12', confronto:'Portugal x Croácia',           palpites:{ Breno:'Portugal',  Daniel:'Portugal',  João:'Portugal',  Mario:'Portugal',  Thiagão:'Portugal' } },
+  { id:'mm13', confronto:'Suíça x A definir',            palpites:{ Breno:'Suíça',     Daniel:'Suíça',     João:'Suíça',     Mario:'Suíça',     Thiagão:'Suíça'    } },
+  { id:'mm14', confronto:'Austrália x Egito',            palpites:{ Breno:'Egito',     Daniel:'Austrália', João:'Austrália', Mario:'Egito',     Thiagão:'Egito'    } },
+  { id:'mm15', confronto:'Argentina x Cabo Verde',       palpites:{ Breno:'Argentina', Daniel:'Argentina', João:'Argentina', Mario:'Argentina', Thiagão:'Argentina'} },
+  { id:'mm16', confronto:'Colômbia x Gana',              palpites:{ Breno:'Colômbia',  Daniel:'Colômbia',  João:'Colômbia',  Mario:'Colômbia',  Thiagão:'Colômbia' } },
+];
+
 const PARTICIPANTES = ["Breno","Daniel","João","Mario","Thiagão"];
 
 // ─── RESULTADOS (alimentados pela planilha) ───────────────────────────────────
 let RESULTADOS = {A:{},B:{},C:{},D:{},E:{},F:{},G:{},H:{},I:{},J:{},K:{},L:{}};
+let RESULTADOS_MM = {}; // { mm01: 'Canadá', mm02: 'Brasil', ... }
 
 // ─── NORMALIZAÇÃO ─────────────────────────────────────────────────────────────
 const SINONIMOS = {
   'tchéquia':'Rep. Tcheca','república tcheca':'Rep. Tcheca','rep. tcheca':'Rep. Tcheca',
   'eua':'EUA','estados unidos':'EUA','usa':'EUA',
+  'holanda':'Holanda','países baixos':'Holanda','netherlands':'Holanda',
   'rd congo':'RD Congo','república democrática do congo':'RD Congo',
-  'costa do marfim':'Costa do Marfim',"côte d'ivoire":'Costa do Marfim',
+  'costa do marfim':'Costa do Marfim',
+  'bósnia e herzegovina':'Bósnia','bosnia':'Bósnia',
 };
 function norm(n){ if(!n) return ''; return SINONIMOS[n.toLowerCase().trim()] || n.trim(); }
 
@@ -158,15 +192,18 @@ async function carregarSheets(){
   const btn = document.querySelector('.btn-reload');
   const icon = document.getElementById('reload-icon');
   btn.classList.add('loading'); icon.textContent='⏳';
-
   try {
     const res = await fetch(SHEETS_URL, {cache:'no-store'});
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
-    // json já vem no formato { A: {1o: "...", 2o: "..."}, B: {...}, ... }
-    Object.entries(json).forEach(([grupo, val]) => {
-      if(RESULTADOS[grupo] !== undefined) {
-        RESULTADOS[grupo] = { '1o': val['1o']||'', '2o': val['2o']||'' };
+    // Fase de grupos: chaves A-L
+    Object.entries(json).forEach(([k, val]) => {
+      if(RESULTADOS[k] !== undefined){
+        RESULTADOS[k] = { '1o': val['1o']||'', '2o': val['2o']||'' };
+      }
+      // Mata-mata: chaves mm01-mm16
+      if(k.startsWith('mm')){
+        RESULTADOS_MM[k] = val['vencedor'] || val['1o'] || '';
       }
     });
     renderTudo();
@@ -177,33 +214,16 @@ async function carregarSheets(){
     mostrarToast('❌ Erro ao carregar planilha');
     renderTudo();
   }
-
   btn.classList.remove('loading'); icon.textContent='↻';
 }
 
-// ─── PARSEAR CSV ──────────────────────────────────────────────────────────────
-// Formato esperado na planilha: Grupo | 1o | 2o
-// Ex: A | Brasil | Marrocos
-function parsearCSV(csv){
-  const linhas = csv.trim().split('\n');
-  linhas.forEach(linha => {
-    // suporte a vírgula e ponto-e-vírgula como separador
-    const cols = linha.split(/[,;]/).map(c => c.trim().replace(/^"|"$/g,''));
-    if(cols.length < 3) return;
-    const grupo = cols[0].toUpperCase().trim();
-    if(!grupo.match(/^[A-L]$/)) return; // ignora cabeçalho
-    RESULTADOS[grupo] = { '1o': cols[1]||'', '2o': cols[2]||'' };
-  });
-}
-
-// ─── PONTUAÇÃO ────────────────────────────────────────────────────────────────
+// ─── PONTUAÇÃO GRUPOS ─────────────────────────────────────────────────────────
 function calcularPontos(palpite, resultado){
   if(!resultado||(!resultado['1o']&&!resultado['2o'])) return {pontos:0,detalhes:[null,null,null,null]};
   const cls = [norm(resultado['1o']), norm(resultado['2o'])].filter(Boolean);
   const det = [null,null,null,null];
   let pts = 0;
   palpite.forEach((time,idx) => {
-    // 3º e 4º palpite (idx 2 e 3) nunca pontuam — só 1º e 2º classificam
     if(idx >= 2) return;
     const tn = norm(time);
     const posReal = cls.indexOf(tn);
@@ -214,29 +234,36 @@ function calcularPontos(palpite, resultado){
   return {pontos:pts, detalhes:det};
 }
 
+// ─── PONTUAÇÃO MATA-MATA ──────────────────────────────────────────────────────
+function calcularPontosMM(pessoa){
+  let pts = 0;
+  JOGOS_MM.forEach(jogo => {
+    const vencedor = norm(RESULTADOS_MM[jogo.id] || '');
+    if(!vencedor) return;
+    if(norm(jogo.palpites[pessoa]) === vencedor) pts += 2;
+  });
+  return pts;
+}
+
+// ─── PLACAR GERAL TOTAL ───────────────────────────────────────────────────────
 function placarGeral(){
   const totais={};
-  PARTICIPANTES.forEach(p=>totais[p]=0);
-  Object.entries(PALPITES).forEach(([g,palpites])=>{
-    PARTICIPANTES.forEach(p=>{
+  PARTICIPANTES.forEach(p=>{
+    let pts = 0;
+    Object.entries(PALPITES).forEach(([g,palpites])=>{
       if(!palpites[p]) return;
-      totais[p] += calcularPontos(palpites[p], RESULTADOS[g]||{}).pontos;
+      pts += calcularPontos(palpites[p], RESULTADOS[g]||{}).pontos;
     });
+    pts += calcularPontosMM(p);
+    totais[p] = pts;
   });
   return totais;
 }
 
-// ─── RENDER ───────────────────────────────────────────────────────────────────
-function renderTudo(){ renderFiltros(); renderPlacarGeral(); renderGrupos('todos'); renderPlacarDetalhado(); }
+// ─── RENDER GERAL ─────────────────────────────────────────────────────────────
+function renderTudo(){ renderFiltros(); renderPlacarGeral(); renderGrupos('todos'); renderMataMata(); renderPlacarDetalhado(); }
 
-function renderFiltros(){
-  let html = '<button class="filtro-btn active" onclick="filtrarGrupo(\'todos\',this)">Todos</button>';
-  Object.keys(PALPITES).forEach(g=>{ html+=`<button class="filtro-btn" onclick="filtrarGrupo('${g}',this)">Grupo ${g}</button>`; });
-  document.getElementById('filtros-grupos').innerHTML = html;
-}
-
-function renderPlacarGeral(){
-  const totais = placarGeral();
+function renderPlacarCards(containerId, totais){
   const sorted = Object.entries(totais).sort((a,b)=>b[1]-a[1]);
   const max = sorted[0]?.[1]??0;
   let html = '';
@@ -244,47 +271,44 @@ function renderPlacarGeral(){
     const lider = pts===max&&pts>0;
     html+=`<div class="placar-card ${lider?'lider':''}"><div class="nome">${i===0&&pts>0?'🏆 ':''}${nome}</div><div class="pts">${pts}</div><div class="label">pontos</div></div>`;
   });
-  document.getElementById('placar-geral').innerHTML = html || '<div style="color:var(--muted);font-size:0.8rem;padding:8px">Aguardando resultados...</div>';
+  document.getElementById(containerId).innerHTML = html || '<div style="color:var(--muted);font-size:0.8rem;padding:8px">Aguardando resultados...</div>';
 }
 
-function renderPlacarDetalhado(){
-  const totais = placarGeral();
-  const sorted = Object.entries(totais).sort((a,b)=>b[1]-a[1]);
-  let html = '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--amarelo);margin-bottom:20px">Placar Detalhado</h2>';
-  sorted.forEach(([nome,total],rank)=>{
-    html+=`<div class="card-pessoa" style="margin-bottom:16px"><div class="card-header"><span>${rank===0&&total>0?'🏆 ':''}${nome}</span><span class="card-pts">${total} pts</span></div>`;
-    Object.entries(PALPITES).forEach(([g,palpites])=>{
-      const p = calcularPontos(palpites[nome]||[], RESULTADOS[g]||{}).pontos;
-      html+=`<div class="time-item"><span style="color:var(--muted);font-size:0.75rem;width:70px">Grupo ${g}</span><span style="margin-left:auto;font-weight:600;color:${p>0?'var(--verde-claro)':'var(--muted)'}">${p>0?'+'+p+' pts':'-'}</span></div>`;
-    });
-    html+='</div>';
-  });
-  document.getElementById('placar-detalhado').innerHTML = html;
+function renderPlacarGeral(){
+  renderPlacarCards('placar-geral', placarGeral());
+  // mini placar no mata-mata
+  const mmTotais={};
+  PARTICIPANTES.forEach(p=>{ mmTotais[p]=calcularPontosMM(p); });
+  renderPlacarCards('placar-geral-mm', mmTotais);
 }
 
+function renderFiltros(){
+  let html = '<button class="filtro-btn active" onclick="filtrarGrupo(\'todos\',this)">Todos</button>';
+  Object.keys(PALPITES).forEach(g=>{ html+=`<button class="filtro-btn" onclick="filtrarGrupo('${g}',this)">Grupo ${g}</button>`; });
+  document.getElementById('filtros-grupos').innerHTML = html;
+}
+
+// ─── RENDER GRUPOS ────────────────────────────────────────────────────────────
 let filtroGrupoAtivo = 'todos';
-let filtroPessoaAtivo = 'todos';
 
-function renderGrupos(filtroGrupo, filtroPessoa){
-  // Atualiza os estados globais explicitamente
+function renderGrupos(filtroGrupo){
   if(filtroGrupo !== undefined) filtroGrupoAtivo = filtroGrupo;
-  if(filtroPessoa !== undefined) filtroPessoaAtivo = filtroPessoa;
-
   let html='';
   Object.entries(PALPITES).forEach(([grupo,palpites])=>{
-    if(filtroGrupoAtivo!=='todos' && filtroGrupoAtivo!==grupo) return;
+    if(filtroGrupoAtivo!=='todos'&&filtroGrupoAtivo!==grupo) return;
     const res = RESULTADOS[grupo]||{};
     const tem = res['1o']||res['2o'];
-    const allTimes = [...new Set(Object.values(palpites).flat().map(norm))];
+    const allTimes = [...new Set(Object.values(palpites).flat().filter(t=>t).map(norm))];
     const resLabel = tem ? `✓ ${res['1o']} · ${res['2o']}` : 'Aguardando resultado';
-    const pessoasFiltradas = filtroPessoaAtivo==='todos' ? PARTICIPANTES : [filtroPessoaAtivo];
     html+=`<div class="grupo-section"><div class="grupo-titulo">GRUPO ${grupo} <span>${allTimes.slice(0,4).join(' · ')}</span><span class="grupo-resultado">${resLabel}</span></div><div class="comparativo">`;
-    pessoasFiltradas.forEach(pessoa=>{
+    PARTICIPANTES.forEach(pessoa=>{
       const pal = palpites[pessoa];
-      const {pontos,detalhes} = pal && pal.length > 0 ? calcularPontos(pal, res) : {pontos:0,detalhes:[]};
-      html+=`<div class="card-pessoa"><div class="card-header"><span>${pessoa}</span>${tem&&pal&&pal.length>0?`<span class="card-pts">${pontos>0?'+'+pontos:'0'} pts</span>`:''}</div>`;
-      if(pal && pal.length > 0){
+      const temPal = pal && pal.filter(t=>t).length > 0;
+      const {pontos,detalhes} = temPal ? calcularPontos(pal, res) : {pontos:0,detalhes:[]};
+      html+=`<div class="card-pessoa"><div class="card-header"><span>${pessoa}</span>${tem&&temPal?`<span class="card-pts">${pontos>0?'+'+pontos:'0'} pts</span>`:''}</div>`;
+      if(temPal){
         pal.forEach((time,i)=>{
+          if(!time) return;
           const pc=['pos-1','pos-2','pos-3','pos-4'][i];
           const ac=detalhes[i];
           html+=`<div class="time-item ${ac==='pos'?'acerto-pos':ac==='time'?'acerto-time':''}"><div class="posicao ${pc}">${i+1}</div><span class="time-nome">${time}</span>${ac==='pos'?'<span class="ponto-badge ponto-2">+2</span>':''}${ac==='time'?'<span class="ponto-badge ponto-1">+1</span>':''}</div>`;
@@ -299,20 +323,60 @@ function renderGrupos(filtroGrupo, filtroPessoa){
   document.getElementById('conteudo-grupos').innerHTML = html;
 }
 
+// ─── RENDER MATA-MATA ─────────────────────────────────────────────────────────
+function renderMataMata(){
+  let html='';
+  JOGOS_MM.forEach(jogo=>{
+    const vencedor = norm(RESULTADOS_MM[jogo.id]||'');
+    const temResultado = !!vencedor;
+    const resLabel = temResultado ? `✓ ${vencedor}` : 'Aguardando resultado';
+    html+=`<div class="mm-jogo">
+      <div class="mm-jogo-header">
+        <span class="mm-confronto">⚔️ ${jogo.confronto}</span>
+        <span class="mm-resultado ${temResultado?'':'pendente'}">${resLabel}</span>
+      </div>
+      <div class="mm-palpites">`;
+    PARTICIPANTES.forEach(pessoa=>{
+      const pal = norm(jogo.palpites[pessoa]||'');
+      const acertou = temResultado && pal === vencedor;
+      const errou = temResultado && pal !== vencedor;
+      html+=`<div class="mm-palpite ${acertou?'acerto':errou?'erro':''}">
+        <div class="mm-palpite-nome">${pessoa}</div>
+        <div class="mm-palpite-time">${pal||'—'}</div>
+        ${acertou?'<div class="mm-pts">+2 pts</div>':''}
+      </div>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('conteudo-matamata').innerHTML = html;
+}
+
+// ─── RENDER PLACAR DETALHADO ──────────────────────────────────────────────────
+function renderPlacarDetalhado(){
+  const totaisGerais = placarGeral();
+  const sorted = Object.entries(totaisGerais).sort((a,b)=>b[1]-a[1]);
+  let html='<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--amarelo);margin-bottom:20px">Placar Detalhado</h2>';
+  sorted.forEach(([nome,total],rank)=>{
+    const ptsMM = calcularPontosMM(nome);
+    const ptsGrupos = total - ptsMM;
+    html+=`<div class="card-pessoa" style="margin-bottom:16px">
+      <div class="card-header"><span>${rank===0&&total>0?'🏆 ':''}${nome}</span><span class="card-pts">${total} pts</span></div>
+      <div class="time-item"><span style="color:var(--muted);font-size:0.75rem">Fase de Grupos</span><span style="margin-left:auto;font-weight:600;color:${ptsGrupos>0?'var(--verde-claro)':'var(--muted)'}">${ptsGrupos>0?'+'+ptsGrupos+' pts':'-'}</span></div>
+      <div class="time-item"><span style="color:var(--muted);font-size:0.75rem">Oitavas de Final</span><span style="margin-left:auto;font-weight:600;color:${ptsMM>0?'var(--verde-claro)':'var(--muted)'}">${ptsMM>0?'+'+ptsMM+' pts':'-'}</span></div>
+    </div>`;
+  });
+  document.getElementById('placar-detalhado').innerHTML = html;
+}
+
 function filtrarGrupo(grupo,btn){
   document.querySelectorAll('#filtros-grupos .filtro-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderGrupos(grupo, filtroPessoaAtivo);
-}
-function filtrarPessoa(pessoa,btn){
-  document.querySelectorAll('#filtros-pessoas .filtro-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderGrupos(filtroGrupoAtivo, pessoa);
+  renderGrupos(grupo);
 }
 function trocarAba(aba,btn){
   document.querySelectorAll('.aba-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  ['grupos','placar','matamata'].forEach(a=>document.getElementById('aba-'+a).classList.add('hidden'));
+  ['grupos','matamata','placar'].forEach(a=>document.getElementById('aba-'+a).classList.add('hidden'));
   document.getElementById('aba-'+aba).classList.remove('hidden');
 }
 function mostrarToast(msg){
@@ -321,7 +385,6 @@ function mostrarToast(msg){
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-// Carrega ao abrir
 carregarSheets();
 </script>
 </body>
