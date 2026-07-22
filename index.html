@@ -394,11 +394,13 @@ function renderJogosMM(containerId, jogos){
 
 // ─── RENDER TUDO ─────────────────────────────────────────────────────────────
 function renderTudo(){
-  // Placar geral
-  renderCards('placar-geral', placarTotal());
-  // Mini placares por fase
-  const mmAv={},mmOi={},mmQt={},mmSf={},mmFi={};
-  PARTICIPANTES.forEach(p=>{ mmAv[p]=ptsMM(JOGOS_AVOS,p); mmOi[p]=ptsMM(JOGOS_OITAVAS,p); mmQt[p]=ptsMM(JOGOS_QUARTAS,p); mmSf[p]=ptsMM(JOGOS_SEMI,p); mmFi[p]=ptsMM(JOGOS_FINAL,p); });
+  // Placar por fase
+  const ptGrupos={},mmAv={},mmOi={},mmQt={},mmSf={},mmFi={};
+  PARTICIPANTES.forEach(p=>{
+    let s=0; Object.entries(PALPITES_GRUPOS).forEach(([g,pal])=>{ if(pal[p]) s+=calcularPontosGrupo(pal[p],RES_GRUPOS[g]||{}).pontos; }); ptGrupos[p]=s;
+    mmAv[p]=ptsMM(JOGOS_AVOS,p); mmOi[p]=ptsMM(JOGOS_OITAVAS,p); mmQt[p]=ptsMM(JOGOS_QUARTAS,p); mmSf[p]=ptsMM(JOGOS_SEMI,p); mmFi[p]=ptsMM(JOGOS_FINAL,p);
+  });
+  renderCards('placar-geral',ptGrupos);
   renderCards('placar-avos',mmAv);
   renderCards('placar-oitavas',mmOi);
   renderCards('placar-quartas',mmQt);
