@@ -6,7 +6,7 @@
 <title>Bolão Copa 2026</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
-  :root{--verde:#0a7a3e;--verde-claro:#12a855;--amarelo:#f5c800;--azul:#003087;--fundo:#0d1117;--card:#161b22;--borda:#21262d;--texto:#e6edf3;--muted:#7d8590;}
+  :root{--f-titulo:"Bebas Neue",sans-serif;--verde:#0a7a3e;--verde-claro:#12a855;--amarelo:#f5c800;--azul:#003087;--fundo:#0d1117;--card:#161b22;--borda:#21262d;--texto:#e6edf3;--muted:#7d8590;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--fundo);color:var(--texto);font-family:'Inter',sans-serif;min-height:100vh;}
   header{background:linear-gradient(135deg,var(--verde) 0%,var(--azul) 100%);padding:28px 24px 20px;text-align:center;position:relative;overflow:hidden;}
@@ -100,17 +100,17 @@
 <div class="status-bar" id="status-bar">Carregando resultados...</div>
 
 <div class="abas">
-  <button class="aba-btn active" onclick="trocarAba('grupos',this)">📋 Grupos</button>
+  <button class="aba-btn active" onclick="trocarAba('placar',this)">📊 Placar</button>
+  <button class="aba-btn" onclick="trocarAba('grupos',this)">📋 Grupos</button>
   <button class="aba-btn" onclick="trocarAba('avos',this)">⚡ 16 Avos</button>
   <button class="aba-btn" onclick="trocarAba('oitavas',this)">🔥 Oitavas</button>
   <button class="aba-btn" onclick="trocarAba('quartas',this)">💥 Quartas</button>
   <button class="aba-btn" onclick="trocarAba('semi',this)">🎯 Semi</button>
   <button class="aba-btn" onclick="trocarAba('final',this)">🏆 Final</button>
-  <button class="aba-btn" onclick="trocarAba('placar',this)">📊 Placar</button>
 </div>
 
 <!-- GRUPOS -->
-<div id="aba-grupos">
+<div id="aba-grupos" class="hidden">
   <div class="placar-geral" id="placar-geral"></div>
   <div class="legenda">
     <div class="legenda-item"><div class="legenda-dot" style="background:var(--verde-claro)"></div> Acertou time E posição (+2pts)</div>
@@ -168,7 +168,7 @@
 </div>
 
 <!-- PLACAR GERAL -->
-<div id="aba-placar" class="hidden">
+<div id="aba-placar">
   <div style="padding:24px;max-width:700px;margin:0 auto" id="placar-detalhado"></div>
 </div>
 
@@ -460,19 +460,53 @@ function renderPlacarDetalhado(){
   const total=placarTotal();
   const sorted=Object.entries(total).sort((a,b)=>b[1]-a[1]);
   const fases=[
-    {label:'Fase de Grupos', fn:p=>{ let s=0; Object.entries(PALPITES_GRUPOS).forEach(([g,pal])=>{ if(pal[p]) s+=calcularPontosGrupo(pal[p],RES_GRUPOS[g]||{}).pontos; }); return s; }},
+    {label:'Grupos', fn:p=>{ let s=0; Object.entries(PALPITES_GRUPOS).forEach(([g,pal])=>{ if(pal[p]) s+=calcularPontosGrupo(pal[p],RES_GRUPOS[g]||{}).pontos; }); return s; }},
     {label:'16 Avos', fn:p=>ptsMM(JOGOS_AVOS,p)},
     {label:'Oitavas', fn:p=>ptsMM(JOGOS_OITAVAS,p)},
     {label:'Quartas', fn:p=>ptsMM(JOGOS_QUARTAS,p)},
-    {label:'Semifinal', fn:p=>ptsMM(JOGOS_SEMI,p)},
-    {label:'Final + 3º lugar', fn:p=>ptsMM(JOGOS_FINAL,p)},
+    {label:'Semi', fn:p=>ptsMM(JOGOS_SEMI,p)},
+    {label:'Final', fn:p=>ptsMM(JOGOS_FINAL,p)},
   ];
-  let html='<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--amarelo);margin-bottom:20px">Placar Detalhado</h2>';
-  sorted.forEach(([nome,tot],rank)=>{
-    html+=`<div class="card-pessoa" style="margin-bottom:16px"><div class="card-header"><span>${rank===0&&tot>0?'🏆 ':''}${nome}</span><span class="card-pts">${tot} pts</span></div>`;
-    fases.forEach(f=>{ const p=f.fn(nome); html+=`<div class="time-item"><span style="color:var(--muted);font-size:0.75rem">${f.label}</span><span style="margin-left:auto;font-weight:600;color:${p>0?'var(--verde-claro)':'var(--muted)'}">${p>0?'+'+p+' pts':'-'}</span></div>`; });
-    html+='</div>';
+  const medalhas=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  const nFases = fases.length;
+
+  let html = '';
+
+  // Cards grandes do ranking
+  html += '<h2 style="font-family:var(--f-titulo);font-size:1.5rem;letter-spacing:2px;color:var(--amarelo);margin-bottom:16px">Ranking Geral</h2>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:32px">';
+  sorted.forEach(function([nome,tot],rank){
+    const cores=['#FFD700','#C0C0C0','#CD7F32','var(--borda)','var(--borda)'];
+    html += '<div style="background:var(--card);border:2px solid '+cores[rank]+';border-radius:12px;padding:16px;text-align:center">';
+    html += '<div style="font-size:1.8rem;margin-bottom:4px">'+medalhas[rank]+'</div>';
+    html += '<div style="font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">'+nome+'</div>';
+    html += '<div style="font-size:2.5rem;color:var(--amarelo);line-height:1;font-weight:900">'+tot+'</div>';
+    html += '<div style="font-size:0.65rem;color:var(--muted)">pontos</div>';
+    html += '</div>';
   });
+  html += '</div>';
+
+  // Tabela breakdown
+  html += '<h2 style="font-family:var(--f-titulo);font-size:1.5rem;letter-spacing:2px;color:var(--amarelo);margin-bottom:16px">Pontos por Fase</h2>';
+  html += '<div style="background:var(--card);border:1px solid var(--borda);border-radius:10px;overflow:hidden">';
+
+  // Header
+  html += '<div style="display:grid;grid-template-columns:130px repeat('+nFases+',1fr);background:var(--borda);padding:10px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">';
+  html += '<span>Nome</span>';
+  fases.forEach(function(f){ html += '<span style="text-align:center">'+f.label+'</span>'; });
+  html += '</div>';
+
+  sorted.forEach(function([nome,tot],rank){
+    html += '<div style="display:grid;grid-template-columns:130px repeat('+nFases+',1fr);padding:10px 16px;border-top:1px solid var(--borda);align-items:center">';
+    html += '<span style="font-weight:700;font-size:0.82rem">'+medalhas[rank]+' '+nome+'</span>';
+    fases.forEach(function(f){
+      const p=f.fn(nome);
+      html += '<span style="text-align:center;font-weight:600;font-size:0.8rem;color:'+(p>0?'var(--verde-claro)':'var(--muted)')+'">'+( p>0?'+'+p+' pts':'-')+'</span>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
   document.getElementById('placar-detalhado').innerHTML=html;
 }
 
@@ -492,6 +526,8 @@ function mostrarToast(msg){
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+// Placar é a aba inicial
+renderTudo();
 carregarSheets();
 </script>
 </body>
