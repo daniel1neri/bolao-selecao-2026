@@ -164,7 +164,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxPU_QOIi_krzmHVBbpXCNE8kArkftQBgZyXgCIgf7rSOKZCdYPfGOm-xEWx2XskIdGEA/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzOj5hkhTJ7EhVBGXHCGqeOJwxLtXWv_1tz5kLJdwobhtJII9ViER5FQwOCfArPNHD1bA/exec';
 
 // ─── PALPITES FASE DE GRUPOS ──────────────────────────────────────────────────
 const PALPITES_GRUPOS = {
@@ -229,25 +229,12 @@ const SINONIMOS = {
 function norm(n){ if(!n) return ''; return SINONIMOS[n.toLowerCase().trim()] || n.trim(); }
 
 // ─── CARREGAR ─────────────────────────────────────────────────────────────────
-function carregarSheets(){
+async function carregarSheets(){
   const btn=document.querySelector('.btn-reload');
   const icon=document.getElementById('reload-icon');
   btn.classList.add('loading'); icon.textContent='⏳';
 
-  // Remove script JSONP anterior se existir
-  const old = document.getElementById('jsonp-script');
-  if(old) old.remove();
-
-  // Timeout de segurança
-  const timeout = setTimeout(()=>{
-    btn.classList.remove('loading'); icon.textContent='↻';
-    document.getElementById('status-bar').textContent='⚠️ Timeout ao carregar planilha';
-    mostrarToast('❌ Timeout');
-  }, 10000);
-
-  // Callback global que o Apps Script vai chamar
-  window._jsonpCallback = function(json){
-    clearTimeout(timeout);
+  function processarJSON(json){
     Object.entries(json).forEach(([k,val])=>{
       if(RES_GRUPOS[k]!==undefined){
         RES_GRUPOS[k]={ '1o':val['1o']||'', '2o':val['2o']||'' };
@@ -259,19 +246,47 @@ function carregarSheets(){
     btn.classList.remove('loading'); icon.textContent='↻';
     document.getElementById('status-bar').textContent='✅ Atualizado em '+new Date().toLocaleTimeString('pt-BR');
     mostrarToast('✅ Placar atualizado!');
-  };
+  }
 
-  // Injeta script JSONP
-  const script = document.createElement('script');
-  script.id = 'jsonp-script';
-  script.src = SHEETS_URL + '?callback=_jsonpCallback&t=' + Date.now();
-  script.onerror = function(){
-    clearTimeout(timeout);
+  // Tenta 1: fetch direto (funciona no GitHub Pages)
+  try {
+    const res = await fetch(SHEETS_URL+'&t='+Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    processarJSON(json);
+    return;
+  } catch(e1){ /* segue pro próximo */ }
+
+  // Tenta 2: proxy allorigins
+  try {
+    const proxy = 'https://api.allorigins.win/raw?url='+encodeURIComponent(SHEETS_URL);
+    const res = await fetch(proxy);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    processarJSON(json);
+    return;
+  } catch(e2){ /* segue pro próximo */ }
+
+  // Tenta 3: JSONP (último recurso)
+  await new Promise((resolve, reject)=>{
+    const old = document.getElementById('jsonp-script');
+    if(old) old.remove();
+    const timeout = setTimeout(()=>{ reject(new Error('timeout')); }, 8000);
+    window._jsonpCallback = function(json){
+      clearTimeout(timeout);
+      processarJSON(json);
+      resolve();
+    };
+    const script = document.createElement('script');
+    script.id = 'jsonp-script';
+    script.src = SHEETS_URL+'?callback=_jsonpCallback&t='+Date.now();
+    script.onerror = ()=>{ clearTimeout(timeout); reject(new Error('script error')); };
+    document.head.appendChild(script);
+  }).catch(e=>{
     btn.classList.remove('loading'); icon.textContent='↻';
     document.getElementById('status-bar').textContent='⚠️ Erro ao carregar planilha';
     mostrarToast('❌ Erro ao carregar');
-  };
-  document.head.appendChild(script);
+  });
 }
 
 // ─── PONTUAÇÃO ────────────────────────────────────────────────────────────────
